@@ -20,10 +20,10 @@ jobs:
         dotnet-version: '8.0.x'
     
     - name: Restore dependencies
-      run: dotnet restore src/TextBlitz/TextBlitz.csproj
+      run: dotnet restore src/TextBlitz/TextBlitz.csproj --verbosity detailed
     
     - name: Build
-      run: dotnet build src/TextBlitz/TextBlitz.csproj --configuration Release --no-restore
+      run: dotnet build src/TextBlitz/TextBlitz.csproj --configuration Release --no-restore --verbosity detailed
     
     - name: Publish
       run: dotnet publish src/TextBlitz/TextBlitz.csproj --configuration Release --self-contained true --runtime win-x64 --output ./publish
