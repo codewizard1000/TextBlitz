@@ -1,0 +1,2 @@
+# TextBlitz Icon Placeholder
+This is a placeholder for the application icon.
