@@ -27,12 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Assets\firebase-login.html">
+    <Content Include="Assets/firebase-login.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Assets\stripe-checkout.html">
+    </Content>
+    <Content Include="Assets/stripe-checkout.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 
 </Project>
