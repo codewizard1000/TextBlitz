@@ -1,0 +1,321 @@
+<Window x:Class="TextBlitz.Views.SnippetManagerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="TextBlitz - Snippet Manager"
+        Width="900" Height="620"
+        MinWidth="700" MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        Background="#1E1E2E">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <!-- Colors -->
+            <SolidColorBrush x:Key="BackgroundBrush" Color="#1E1E2E" />
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#313244" />
+            <SolidColorBrush x:Key="TextBrush" Color="#CDD6F4" />
+            <SolidColorBrush x:Key="SubTextBrush" Color="#A6ADC8" />
+            <SolidColorBrush x:Key="AccentBrush" Color="#89B4FA" />
+            <SolidColorBrush x:Key="ErrorBrush" Color="#F38BA8" />
+
+            <!-- TextBox style -->
+            <Style x:Key="DarkTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Setter Property="CaretBrush" Value="{StaticResource TextBrush}" />
+                <Setter Property="BorderBrush" Value="#45475A" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Padding" Value="8,6" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="0" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Button style -->
+            <Style x:Key="BaseButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#45475A" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="#585B70" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="AccentButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+                <Setter Property="Foreground" Value="#1E1E2E" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
+            <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
+                <Setter Property="Background" Value="#45475A" />
+                <Setter Property="Foreground" Value="{StaticResource ErrorBrush}" />
+            </Style>
+
+            <!-- ListBox styles -->
+            <Style x:Key="SnippetListBoxStyle" TargetType="ListBox">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            </Style>
+
+            <Style x:Key="SnippetListBoxItemStyle" TargetType="ListBoxItem">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Setter Property="Padding" Value="12,10" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="6"
+                                    Padding="{TemplateBinding Padding}"
+                                    Margin="0,0,0,2">
+                                <ContentPresenter />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#2A2A3C" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceBrush}" />
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                    <Setter TargetName="Bd" Property="BorderThickness" Value="0,0,0,0" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Label style -->
+            <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource SubTextBrush}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,0,0,4" />
+                <Setter Property="TextTransform" Value="Uppercase" />
+            </Style>
+
+            <!-- CheckBox style -->
+            <Style x:Key="DarkCheckBoxStyle" TargetType="CheckBox">
+                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Cursor" Value="Hand" />
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" MinWidth="200" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Panel: Snippet List -->
+        <Border Grid.Column="0" Background="#181825" Padding="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Title -->
+                <TextBlock Grid.Row="0"
+                           Text="Snippets"
+                           Foreground="{StaticResource TextBrush}"
+                           FontSize="18" FontWeight="Bold"
+                           Margin="4,8,0,12" />
+
+                <!-- Search -->
+                <TextBox Grid.Row="1"
+                         Style="{StaticResource DarkTextBoxStyle}"
+                         Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                         Margin="0,0,0,8" />
+
+                <!-- Snippet List -->
+                <ListBox Grid.Row="2"
+                         Style="{StaticResource SnippetListBoxStyle}"
+                         ItemContainerStyle="{StaticResource SnippetListBoxItemStyle}"
+                         ItemsSource="{Binding FilteredSnippets}"
+                         SelectedItem="{Binding SelectedSnippet}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}"
+                                           Foreground="{StaticResource TextBrush}"
+                                           FontSize="13" FontWeight="Medium" />
+                                <TextBlock Text="{Binding TextShortcut}"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           FontSize="11" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!-- Splitter -->
+        <GridSplitter Grid.Column="1"
+                      Width="1"
+                      Background="#45475A"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Stretch" />
+
+        <!-- Right Panel: Snippet Editor -->
+        <Border Grid.Column="2" Padding="24,16">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Editor Fields -->
+                <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <!-- No selection message -->
+                        <TextBlock Text="Select a snippet or create a new one"
+                                   Foreground="{StaticResource SubTextBrush}"
+                                   FontSize="14"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,40,0,0"
+                                   Visibility="{Binding IsNoSnippetSelected, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Visible}" />
+
+                        <!-- Editor (visible when snippet selected) -->
+                        <StackPanel Visibility="{Binding IsSnippetSelected, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}">
+                            <!-- Name -->
+                            <TextBlock Text="NAME" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Style="{StaticResource DarkTextBoxStyle}"
+                                     Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                     Margin="0,0,0,16" />
+
+                            <!-- Content -->
+                            <TextBlock Text="CONTENT" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBox Style="{StaticResource DarkTextBoxStyle}"
+                                     Text="{Binding EditContent, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     VerticalScrollBarVisibility="Auto"
+                                     MinHeight="160"
+                                     MaxHeight="300"
+                                     Margin="0,0,0,16" />
+
+                            <!-- Text Shortcut -->
+                            <TextBlock Text="TEXT SHORTCUT" Style="{StaticResource FieldLabelStyle}" />
+                            <Grid Margin="0,0,0,16">
+                                <TextBox Style="{StaticResource DarkTextBoxStyle}"
+                                         Text="{Binding EditTextShortcut, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Text="e.g. /sig"
+                                           Foreground="#585B70"
+                                           FontSize="12"
+                                           IsHitTestVisible="False"
+                                           VerticalAlignment="Center"
+                                           Margin="12,0,0,0"
+                                           Visibility="{Binding IsTextShortcutEmpty, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}" />
+                            </Grid>
+
+                            <!-- Hotkey -->
+                            <TextBlock Text="HOTKEY" Style="{StaticResource FieldLabelStyle}" />
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Style="{StaticResource DarkTextBoxStyle}"
+                                         Text="{Binding EditHotkey, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         Margin="0,0,8,0" />
+                                <Button Grid.Column="1"
+                                        Content="{Binding RecordButtonText}"
+                                        Style="{StaticResource BaseButtonStyle}"
+                                        Command="{Binding RecordHotkeyCommand}" />
+                            </Grid>
+
+                            <!-- Enabled -->
+                            <CheckBox Style="{StaticResource DarkCheckBoxStyle}"
+                                      Content="Enabled"
+                                      IsChecked="{Binding EditIsEnabled}"
+                                      Margin="0,0,0,12" />
+
+                            <!-- Conflict Warning -->
+                            <TextBlock Text="{Binding ConflictWarning}"
+                                       Foreground="{StaticResource ErrorBrush}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8"
+                                       Visibility="{Binding HasConflict, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Bottom Toolbar -->
+                <Border Grid.Row="1"
+                        BorderBrush="#45475A"
+                        BorderThickness="0,1,0,0"
+                        Padding="0,12,0,0"
+                        Margin="0,12,0,0">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="New"
+                                Style="{StaticResource AccentButtonStyle}"
+                                Command="{Binding NewSnippetCommand}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Save"
+                                Style="{StaticResource BaseButtonStyle}"
+                                Command="{Binding SaveSnippetCommand}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Delete"
+                                Style="{StaticResource DangerButtonStyle}"
+                                Command="{Binding DeleteSnippetCommand}"
+                                Margin="0,0,8,0" />
+                        <Button Content="Cancel"
+                                Style="{StaticResource BaseButtonStyle}"
+                                Command="{Binding CancelEditCommand}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

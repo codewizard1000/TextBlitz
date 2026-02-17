@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TextBlitz - Checkout</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: #0f1117;
+      color: #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .card {
+      background: #1a1b23;
+      border: 1px solid #2a2b35;
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #818cf8;
+      margin-bottom: 0.25rem;
+    }
+
+    .logo p {
+      font-size: 0.875rem;
+      color: #71717a;
+      margin-bottom: 2rem;
+    }
+
+    .plan-card {
+      background: #0f1117;
+      border: 1px solid #2a2b35;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .plan-card h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #e4e4e7;
+    }
+
+    .plan-card .price {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #818cf8;
+      margin: 0.5rem 0;
+    }
+
+    .plan-card .price span {
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: #71717a;
+    }
+
+    .plan-card ul {
+      list-style: none;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: #a1a1aa;
+    }
+
+    .plan-card ul li {
+      padding: 0.25rem 0;
+    }
+
+    .plan-card ul li::before {
+      content: '\2713';
+      color: #34d399;
+      margin-right: 0.5rem;
+      font-weight: 700;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.875rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #818cf8;
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #6366f1; }
+
+    .btn-cancel {
+      background: transparent;
+      color: #71717a;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .btn-cancel:hover { color: #a1a1aa; }
+
+    .error-msg {
+      background: #451a1a;
+      border: 1px solid #7f1d1d;
+      color: #fca5a5;
+      padding: 0.625rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .status-msg {
+      font-size: 0.875rem;
+      color: #a1a1aa;
+      margin-top: 1rem;
+    }
+
+    .success-icon {
+      font-size: 3rem;
+      color: #34d399;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="checkoutCard">
+    <div class="logo">
+      <h1>TextBlitz Pro</h1>
+      <p>Upgrade to unlock all features</p>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <div class="plan-card" id="planDetails">
+      <h2 id="planName">Pro Monthly</h2>
+      <div class="price" id="planPrice">$4.99<span>/month</span></div>
+      <ul>
+        <li>Unlimited snippets</li>
+        <li>500 clipboard history items</li>
+        <li>Template tokens &amp; variables</li>
+        <li>Cloud sync across devices</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+
+    <button id="checkoutBtn" class="btn btn-primary" onclick="redirectToCheckout()">
+      Proceed to Checkout
+    </button>
+    <button class="btn btn-cancel" onclick="handleCancel()">Cancel</button>
+  </div>
+
+  <!-- Success state (hidden by default) -->
+  <div class="card" id="successCard" style="display: none;">
+    <div class="success-icon">&#10003;</div>
+    <div class="logo">
+      <h1>Welcome to Pro!</h1>
+      <p>Your subscription is now active</p>
+    </div>
+    <p class="status-msg">You can close this window. Your features will be unlocked momentarily.</p>
+  </div>
+
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    // ---- Stripe Configuration (replace with real key) ----
+    const STRIPE_PUBLISHABLE_KEY = 'pk_test_placeholder';
+
+    // Plan configuration
+    const plans = {
+      monthly: {
+        name: 'Pro Monthly',
+        priceDisplay: '$4.99',
+        period: '/month',
+        priceId: 'price_monthly_placeholder'
+      },
+      annual: {
+        name: 'Pro Annual',
+        priceDisplay: '$39.99',
+        period: '/year',
+        priceId: 'price_annual_placeholder'
+      }
+    };
+
+    let stripe = null;
+    let currentPlan = 'monthly';
+    let sessionId = null;
+
+    // Parse URL parameters or wait for postMessage
+    function init() {
+      const params = new URLSearchParams(window.location.search);
+
+      // Check for success/cancel redirect
+      const status = params.get('status');
+      if (status === 'success') {
+        sessionId = params.get('session_id');
+        showSuccess();
+        return;
+      }
+      if (status === 'cancel') {
+        postMessage({ type: 'checkout_cancel' });
+        return;
+      }
+
+      // Determine plan from params
+      const plan = params.get('plan');
+      if (plan && plans[plan]) {
+        currentPlan = plan;
+      }
+
+      updatePlanDisplay();
+
+      // Initialize Stripe
+      try {
+        stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+      } catch (err) {
+        showError('Failed to initialize payment system.');
+      }
+    }
+
+    function updatePlanDisplay() {
+      const plan = plans[currentPlan];
+      document.getElementById('planName').textContent = plan.name;
+      document.getElementById('planPrice').innerHTML =
+        plan.priceDisplay + '<span>' + plan.period + '</span>';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('errorMsg').classList.remove('visible');
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('checkoutBtn');
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? '<span class="spinner"></span>Redirecting...'
+        : 'Proceed to Checkout';
+    }
+
+    function showSuccess() {
+      document.getElementById('checkoutCard').style.display = 'none';
+      document.getElementById('successCard').style.display = 'block';
+      postMessage({
+        type: 'checkout_success',
+        sessionId: sessionId
+      });
+    }
+
+    async function redirectToCheckout() {
+      hideError();
+
+      if (!stripe) {
+        showError('Payment system not initialized. Please try again.');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        // In production, the sessionId would come from your backend via postMessage
+        // or via a fetch call. For now we attempt a direct redirect using
+        // Stripe Checkout client-side (requires a session ID from the backend).
+
+        // Listen for session ID from host application
+        // The host app should post: { type: 'checkout_session', sessionId: '...' }
+        showError('Waiting for checkout session from the application...');
+        setLoading(false);
+
+        // If a session ID was passed as a URL parameter, use it immediately
+        const params = new URLSearchParams(window.location.search);
+        const sid = params.get('session_id');
+        if (sid) {
+          const { error } = await stripe.redirectToCheckout({ sessionId: sid });
+          if (error) {
+            showError(error.message);
+            setLoading(false);
+          }
+        }
+      } catch (err) {
+        showError('Checkout failed: ' + err.message);
+        setLoading(false);
+      }
+    }
+
+    function handleCancel() {
+      postMessage({ type: 'checkout_cancel' });
+    }
+
+    function postMessage(data) {
+      const message = JSON.stringify(data);
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(message);
+      } else {
+        console.log('Checkout message:', message);
+      }
+    }
+
+    // Listen for messages from the host WebView2 application
+    window.addEventListener('message', function(event) {
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+
+        if (data.type === 'checkout_session' && data.sessionId) {
+          // Received session ID from backend via host app
+          stripe.redirectToCheckout({ sessionId: data.sessionId }).then(function(result) {
+            if (result.error) {
+              showError(result.error.message);
+            }
+          });
+        }
+
+        if (data.type === 'set_plan' && data.plan && plans[data.plan]) {
+          currentPlan = data.plan;
+          updatePlanDisplay();
+        }
+      } catch (err) {
+        // Ignore non-JSON messages
+      }
+    });
+
+    // Initialize on load
+    init();
+  </script>
+</body>
+</html>

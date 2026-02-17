@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TextBlitz - Sign In</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background: #0f1117;
+      color: #e4e4e7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .card {
+      background: #1a1b23;
+      border: 1px solid #2a2b35;
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #818cf8;
+    }
+
+    .logo p {
+      font-size: 0.875rem;
+      color: #71717a;
+      margin-top: 0.25rem;
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid #2a2b35;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.75rem;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #71717a;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .tab.active {
+      color: #818cf8;
+      border-bottom-color: #818cf8;
+    }
+
+    .tab:hover { color: #a5b4fc; }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #a1a1aa;
+      margin-bottom: 0.375rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.625rem 0.75rem;
+      background: #0f1117;
+      border: 1px solid #2a2b35;
+      border-radius: 8px;
+      color: #e4e4e7;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: #818cf8;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      background: #818cf8;
+      color: #fff;
+      margin-top: 0.5rem;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: #6366f1; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 1.25rem 0;
+      color: #52525b;
+      font-size: 0.75rem;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #2a2b35;
+    }
+
+    .divider span { padding: 0 0.75rem; }
+
+    .btn-google {
+      background: #fff;
+      color: #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-google:hover:not(:disabled) { background: #f4f4f5; }
+
+    .btn-google svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .error-msg {
+      background: #451a1a;
+      border: 1px solid #7f1d1d;
+      color: #fca5a5;
+      padding: 0.625rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <h1>TextBlitz</h1>
+      <p>Sign in to sync your data</p>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="signin" onclick="switchTab('signin')">Sign In</button>
+      <button class="tab" data-tab="signup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <form id="authForm" onsubmit="handleSubmit(event)">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter your password" minlength="6" />
+      </div>
+      <button type="submit" id="submitBtn" class="btn btn-primary">Sign In</button>
+    </form>
+
+    <div class="divider"><span>or</span></div>
+
+    <button id="googleBtn" class="btn btn-google" onclick="handleGoogleSignIn()">
+      <svg viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continue with Google
+    </button>
+  </div>
+
+  <!-- Firebase JS SDK (compat for simpler usage in a single-page context) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+    // ---- Firebase Configuration ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyCJuhy0TZTNn_am8N2LduOViIBtkPqyMtM",
+      authDomain: "texblitz.firebaseapp.com",
+      projectId: "texblitz",
+      storageBucket: "texblitz.firebasestorage.app",
+      messagingSenderId: "165567056856",
+      appId: "1:165567056856:web:30580d4c303932bc02c0ad"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    let currentTab = 'signin';
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+      document.getElementById('submitBtn').textContent = tab === 'signin' ? 'Sign In' : 'Create Account';
+      document.getElementById('password').autocomplete = tab === 'signin' ? 'current-password' : 'new-password';
+      hideError();
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('errorMsg').classList.remove('visible');
+    }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('submitBtn');
+      const googleBtn = document.getElementById('googleBtn');
+      btn.disabled = loading;
+      googleBtn.disabled = loading;
+      if (loading) {
+        btn.innerHTML = '<span class="spinner"></span>' + (currentTab === 'signin' ? 'Signing in...' : 'Creating account...');
+      } else {
+        btn.textContent = currentTab === 'signin' ? 'Sign In' : 'Create Account';
+      }
+    }
+
+    async function sendAuthResult(user) {
+      try {
+        const idToken = await user.getIdToken(true);
+        const message = JSON.stringify({
+          type: 'auth',
+          idToken: idToken,
+          userId: user.uid,
+          email: user.email
+        });
+
+        if (window.chrome && window.chrome.webview) {
+          window.chrome.webview.postMessage(message);
+        } else {
+          // Fallback for testing outside WebView2
+          console.log('Auth result:', message);
+        }
+      } catch (err) {
+        showError('Failed to retrieve authentication token: ' + err.message);
+      }
+    }
+
+    async function handleSubmit(event) {
+      event.preventDefault();
+      hideError();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showError('Please enter both email and password.');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        let userCredential;
+        if (currentTab === 'signin') {
+          userCredential = await auth.signInWithEmailAndPassword(email, password);
+        } else {
+          userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        }
+        await sendAuthResult(userCredential.user);
+      } catch (err) {
+        const friendlyMessages = {
+          'auth/user-not-found': 'No account found with this email.',
+          'auth/wrong-password': 'Incorrect password. Please try again.',
+          'auth/email-already-in-use': 'An account with this email already exists.',
+          'auth/weak-password': 'Password must be at least 6 characters.',
+          'auth/invalid-email': 'Please enter a valid email address.',
+          'auth/too-many-requests': 'Too many attempts. Please try again later.',
+          'auth/invalid-credential': 'Invalid email or password. Please try again.'
+        };
+        showError(friendlyMessages[err.code] || err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function handleGoogleSignIn() {
+      hideError();
+      setLoading(true);
+
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const userCredential = await auth.signInWithPopup(provider);
+        await sendAuthResult(userCredential.user);
+      } catch (err) {
+        if (err.code !== 'auth/popup-closed-by-user') {
+          showError('Google sign-in failed: ' + err.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+  </script>
+</body>
+</html>

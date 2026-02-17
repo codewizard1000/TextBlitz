@@ -1,0 +1,1 @@
+Read INSTRUCTIONS.md and build the TextBlitz Windows desktop app according to the specifications. Create a complete C# .NET 8 WPF solution with all core features: snippets/templates with hotkeys, clipboard manager with formatting modes, Firebase auth, and Stripe billing. Set up the project structure, implement the core functionality, and create a README with setup instructions.
