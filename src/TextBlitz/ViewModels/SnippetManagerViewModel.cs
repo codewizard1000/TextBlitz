@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TextBlitz.Data;
 using TextBlitz.Models;
+using TextBlitz.Services.Snippets;
+using TextBlitz.Services.Firebase;
 
 namespace TextBlitz.ViewModels;
 

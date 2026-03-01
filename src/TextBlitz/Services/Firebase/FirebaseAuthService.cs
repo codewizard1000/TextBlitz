@@ -208,7 +208,7 @@ public sealed class FirebaseAuthService : IDisposable
                 PlanType = _currentUser?.PlanType ?? PlanType.Free
             };
 
-            var json = JsonSerializer.Serialize(payload, PersistedAuthStateContext.Default.PersistedAuthState);
+            var json = JsonSerializer.Serialize(payload);
             var plainBytes = Encoding.UTF8.GetBytes(json);
             var protectedBytes = ProtectedData.Protect(plainBytes, null, DataProtectionScope.CurrentUser);
 
@@ -232,7 +232,7 @@ public sealed class FirebaseAuthService : IDisposable
             var plainBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
             var json = Encoding.UTF8.GetString(plainBytes);
 
-            var state = JsonSerializer.Deserialize(json, PersistedAuthStateContext.Default.PersistedAuthState);
+            var state = JsonSerializer.Deserialize<PersistedAuthState>(json);
             if (state is null || string.IsNullOrWhiteSpace(state.IdToken))
                 return;
 
@@ -293,8 +293,6 @@ public sealed class FirebaseAuthService : IDisposable
         public PlanType PlanType { get; set; }
     }
 
-    [System.Text.Json.Serialization.JsonSerializable(typeof(PersistedAuthState))]
-    private sealed partial class PersistedAuthStateContext : System.Text.Json.Serialization.JsonSerializerContext;
 }
 
 /// <summary>Event args for <see cref="FirebaseAuthService.AuthStateChanged"/>.</summary>

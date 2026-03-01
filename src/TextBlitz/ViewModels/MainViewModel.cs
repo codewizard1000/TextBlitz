@@ -6,6 +6,10 @@ using CommunityToolkit.Mvvm.Input;
 using TextBlitz.Data;
 using TextBlitz.Models;
 using TextBlitz.Services.Clipboard;
+using TextBlitz.Services.Hotkeys;
+using TextBlitz.Services.Snippets;
+using TextBlitz.Services.Firebase;
+using TextBlitz.Services.Billing;
 
 namespace TextBlitz.ViewModels;
 
