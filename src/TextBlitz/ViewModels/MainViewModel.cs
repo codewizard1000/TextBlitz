@@ -190,11 +190,6 @@ public partial class MainViewModel : ObservableObject
     /// </summary>
     public event EventHandler? SnippetPickerHotkeyPressed;
 
-    /// <summary>
-    /// Invoked when the paste-last global hotkey is pressed.
-    /// </summary>
-    public event EventHandler? PasteLastHotkeyPressed;
-
     private void OnClipboardTrayHotkeyPressed()
     {
         ClipboardTrayHotkeyPressed?.Invoke(this, EventArgs.Empty);
