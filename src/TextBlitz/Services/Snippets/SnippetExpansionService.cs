@@ -188,7 +188,7 @@ public sealed class SnippetExpansionService : IDisposable
     /// <summary>
     /// Backward-compatible helper used by view models.
     /// </summary>
-    public void UpdateSnippets(List<Snippet> snippets)
+    public void UpdateSnippets(IReadOnlyList<Snippet> snippets)
     {
         ActiveSnippets = snippets ?? Array.Empty<Snippet>();
     }

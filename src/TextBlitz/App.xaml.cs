@@ -1,9 +1,10 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Windows;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TextBlitz.Data;
 using TextBlitz.Services.Billing;
 using TextBlitz.Services.Clipboard;
@@ -56,12 +57,11 @@ public partial class App : Application
         _databaseService = new DatabaseService();
         await _databaseService.InitializeAsync();
 
-        var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Information));
         var httpClient = new HttpClient();
 
-        _authService = new FirebaseAuthService(loggerFactory.CreateLogger<FirebaseAuthService>());
-        _syncService = new FirestoreSyncService(httpClient, _authService, loggerFactory.CreateLogger<FirestoreSyncService>());
-        _billingService = new BillingService(_authService, _syncService, httpClient, loggerFactory.CreateLogger<BillingService>());
+        _authService = new FirebaseAuthService(NullLogger<FirebaseAuthService>.Instance);
+        _syncService = new FirestoreSyncService(httpClient, _authService, NullLogger<FirestoreSyncService>.Instance);
+        _billingService = new BillingService(_authService, _syncService, httpClient, NullLogger<BillingService>.Instance);
 
         _clipboardWatcher = new ClipboardWatcher();
         _hotkeyManager = new GlobalHotkeyManager();
@@ -235,11 +235,11 @@ public partial class App : Application
 
     private async void PasteLast()
     {
-        var lastItem = await _databaseService!.GetLastClipboardItemAsync();
+        var lastItem = (await _databaseService!.GetHistoryAsync(1)).FirstOrDefault();
         if (lastItem != null)
         {
             var settings = _mainViewModel!.SettingsViewModel;
-            PasteEngine.PasteWithFormatting(
+            await PasteEngine.PasteWithFormatting(
                 lastItem.PlainText,
                 lastItem.RichText,
                 lastItem.HtmlText,
