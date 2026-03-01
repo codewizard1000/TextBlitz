@@ -121,17 +121,29 @@ public partial class MainViewModel : ObservableObject
 
         if (!string.IsNullOrWhiteSpace(settings.ClipboardTrayHotkey))
         {
-            _hotkeyManager.Register(settings.ClipboardTrayHotkey, OnClipboardTrayHotkeyPressed);
+            TryRegisterHotkey(settings.ClipboardTrayHotkey, OnClipboardTrayHotkeyPressed);
         }
 
         if (!string.IsNullOrWhiteSpace(settings.SnippetPickerHotkey))
         {
-            _hotkeyManager.Register(settings.SnippetPickerHotkey, OnSnippetPickerHotkeyPressed);
+            TryRegisterHotkey(settings.SnippetPickerHotkey, OnSnippetPickerHotkeyPressed);
         }
 
         if (!string.IsNullOrWhiteSpace(settings.PasteLastHotkey))
         {
-            _hotkeyManager.Register(settings.PasteLastHotkey, OnPasteLastHotkeyPressed);
+            TryRegisterHotkey(settings.PasteLastHotkey, OnPasteLastHotkeyPressed);
+        }
+    }
+
+    private void TryRegisterHotkey(string hotkey, Action callback)
+    {
+        try
+        {
+            _hotkeyManager.Register(hotkey, callback);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Hotkey registration skipped ({hotkey}): {ex.Message}");
         }
     }
 
