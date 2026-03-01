@@ -8,6 +8,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TextBlitz.Data;
 using TextBlitz.Models;
+using TextBlitz.Services.Hotkeys;
+using TextBlitz.Services.Firebase;
 
 namespace TextBlitz.ViewModels;
 

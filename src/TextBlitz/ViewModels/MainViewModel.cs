@@ -6,6 +6,10 @@ using CommunityToolkit.Mvvm.Input;
 using TextBlitz.Data;
 using TextBlitz.Models;
 using TextBlitz.Services.Clipboard;
+using TextBlitz.Services.Hotkeys;
+using TextBlitz.Services.Snippets;
+using TextBlitz.Services.Firebase;
+using TextBlitz.Services.Billing;
 
 namespace TextBlitz.ViewModels;
 
@@ -185,11 +189,6 @@ public partial class MainViewModel : ObservableObject
     /// Invoked when the snippet picker global hotkey is pressed.
     /// </summary>
     public event EventHandler? SnippetPickerHotkeyPressed;
-
-    /// <summary>
-    /// Invoked when the paste-last global hotkey is pressed.
-    /// </summary>
-    public event EventHandler? PasteLastHotkeyPressed;
 
     private void OnClipboardTrayHotkeyPressed()
     {

@@ -265,6 +265,16 @@ public sealed class GlobalHotkeyManager : IDisposable
         };
     }
 
+    /// <summary>
+    /// Backward-compatible helper used by older view models.
+    /// Registers a hotkey with an auto-generated id.
+    /// </summary>
+    public void Register(string hotkeyString, Action callback)
+    {
+        var id = $"auto_{Guid.NewGuid():N}";
+        RegisterHotkey(id, hotkeyString, callback);
+    }
+
     public void Dispose()
     {
         if (_disposed)

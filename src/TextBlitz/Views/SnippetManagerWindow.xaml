@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:TextBlitz.Views"
         mc:Ignorable="d"
         Title="TextBlitz - Snippet Manager"
         Width="900" Height="620"
@@ -134,7 +135,6 @@
                 <Setter Property="FontSize" Value="11" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Margin" Value="0,0,0,4" />
-                <Setter Property="TextTransform" Value="Uppercase" />
             </Style>
 
             <!-- CheckBox style -->
@@ -221,10 +221,10 @@
                                    FontSize="14"
                                    HorizontalAlignment="Center"
                                    Margin="0,40,0,0"
-                                   Visibility="{Binding IsNoSnippetSelected, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Visible}" />
+                                   Visibility="{Binding IsNoSnippetSelected, Converter={x:Static views:BoolToVisibilityConverter.Instance}, FallbackValue=Visible}" />
 
                         <!-- Editor (visible when snippet selected) -->
-                        <StackPanel Visibility="{Binding IsSnippetSelected, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}">
+                        <StackPanel Visibility="{Binding IsSnippetSelected, Converter={x:Static views:BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}">
                             <!-- Name -->
                             <TextBlock Text="NAME" Style="{StaticResource FieldLabelStyle}" />
                             <TextBox Style="{StaticResource DarkTextBoxStyle}"
@@ -253,7 +253,7 @@
                                            IsHitTestVisible="False"
                                            VerticalAlignment="Center"
                                            Margin="12,0,0,0"
-                                           Visibility="{Binding IsTextShortcutEmpty, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}" />
+                                           Visibility="{Binding IsTextShortcutEmpty, Converter={x:Static views:BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}" />
                             </Grid>
 
                             <!-- Hotkey -->
@@ -286,7 +286,7 @@
                                        FontSize="12"
                                        TextWrapping="Wrap"
                                        Margin="0,0,0,8"
-                                       Visibility="{Binding HasConflict, Converter={x:Static BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}" />
+                                       Visibility="{Binding HasConflict, Converter={x:Static views:BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}" />
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
