@@ -179,17 +179,31 @@ public partial class App : Application
     {
         var settings = _mainViewModel!.SettingsViewModel;
 
-        _hotkeyManager!.RegisterHotkey("clipboard_tray",
+        TryRegisterHotkey("clipboard_tray",
             settings.ClipboardTrayHotkey ?? "Ctrl+Shift+V",
             () => Dispatcher.Invoke(ToggleClipboardTray));
 
-        _hotkeyManager.RegisterHotkey("snippet_picker",
+        TryRegisterHotkey("snippet_picker",
             settings.SnippetPickerHotkey ?? "Ctrl+Shift+Space",
             () => Dispatcher.Invoke(ShowSnippetPicker));
 
-        _hotkeyManager.RegisterHotkey("paste_last",
+        TryRegisterHotkey("paste_last",
             settings.PasteLastHotkey ?? "Ctrl+Shift+L",
             () => Dispatcher.Invoke(PasteLast));
+    }
+
+    private void TryRegisterHotkey(string id, string combo, Action callback)
+    {
+        try
+        {
+            _hotkeyManager!.RegisterHotkey(id, combo, callback);
+            LogDiagnostic($"Hotkey registered: {id} = {combo}");
+        }
+        catch (Exception ex)
+        {
+            // Do not crash startup if a global hotkey is already in use by another app.
+            LogDiagnostic($"Hotkey registration failed for {id} ({combo}): {ex.Message}");
+        }
     }
 
     public void ReregisterHotkeys()
