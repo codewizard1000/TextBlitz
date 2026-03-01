@@ -176,6 +176,23 @@ public sealed class SnippetExpansionService : IDisposable
         _typingBuffer.Clear();
     }
 
+    /// <summary>
+    /// Backward-compatible overload used by older startup code.
+    /// </summary>
+    public void Start(string delimiterTriggers)
+    {
+        DelimiterTriggers = delimiterTriggers;
+        Start();
+    }
+
+    /// <summary>
+    /// Backward-compatible helper used by view models.
+    /// </summary>
+    public void UpdateSnippets(List<Snippet> snippets)
+    {
+        ActiveSnippets = snippets ?? Array.Empty<Snippet>();
+    }
+
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0 && !_suppressingInput)

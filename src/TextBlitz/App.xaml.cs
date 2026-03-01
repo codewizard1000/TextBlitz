@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Net.Http;
 using System.Windows;
+using Microsoft.Extensions.Logging;
 using TextBlitz.Data;
 using TextBlitz.Services.Billing;
 using TextBlitz.Services.Clipboard;
@@ -54,13 +56,17 @@ public partial class App : Application
         _databaseService = new DatabaseService();
         await _databaseService.InitializeAsync();
 
-        _authService = new FirebaseAuthService();
-        _syncService = new FirestoreSyncService(_authService);
-        _billingService = new BillingService(_authService, _syncService);
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Information));
+        var httpClient = new HttpClient();
+
+        _authService = new FirebaseAuthService(loggerFactory.CreateLogger<FirebaseAuthService>());
+        _syncService = new FirestoreSyncService(httpClient, _authService, loggerFactory.CreateLogger<FirestoreSyncService>());
+        _billingService = new BillingService(_authService, _syncService, httpClient, loggerFactory.CreateLogger<BillingService>());
 
         _clipboardWatcher = new ClipboardWatcher();
         _hotkeyManager = new GlobalHotkeyManager();
-        _expansionService = new SnippetExpansionService(_databaseService);
+        _hotkeyManager.Start();
+        _expansionService = new SnippetExpansionService();
 
         // Create main ViewModel
         _mainViewModel = new MainViewModel(
@@ -91,8 +97,7 @@ public partial class App : Application
     {
         _trayIcon = new TaskbarIcon
         {
-            ToolTipText = "TextBlitz",
-            MenuActivation = PopupActivation.RightClick
+            ToolTipText = "TextBlitz"
         };
 
         // Left click toggles clipboard tray
@@ -126,7 +131,7 @@ public partial class App : Application
 
     private void RegisterDefaultHotkeys()
     {
-        var settings = _mainViewModel!.Settings;
+        var settings = _mainViewModel!.SettingsViewModel;
 
         _hotkeyManager!.RegisterHotkey("clipboard_tray",
             settings.ClipboardTrayHotkey ?? "Ctrl+Shift+V",
@@ -165,7 +170,7 @@ public partial class App : Application
         {
             _trayWindow = new ClipboardTrayWindow
             {
-                DataContext = _mainViewModel!.ClipboardTray
+                DataContext = _mainViewModel!.ClipboardTrayViewModel
             };
             _trayWindow.Closed += (s, e) => _trayWindow = null;
         }
@@ -184,7 +189,7 @@ public partial class App : Application
         {
             _snippetWindow = new SnippetManagerWindow
             {
-                DataContext = _mainViewModel!.SnippetManager
+                DataContext = _mainViewModel!.SnippetManagerViewModel
             };
             _snippetWindow.Closed += (s, e) => _snippetWindow = null;
         }
@@ -196,7 +201,7 @@ public partial class App : Application
     {
         var settingsWindow = new SettingsWindow
         {
-            DataContext = _mainViewModel!.SettingsVM
+            DataContext = _mainViewModel!.SettingsViewModel
         };
         settingsWindow.ShowDialog();
     }
@@ -210,7 +215,7 @@ public partial class App : Application
             return;
         }
 
-        var pickerVM = new SnippetPickerViewModel(_databaseService!, _expansionService!);
+        var pickerVM = new SnippetPickerViewModel(_databaseService!);
         _pickerWindow = new SnippetPickerWindow
         {
             DataContext = pickerVM
@@ -233,7 +238,7 @@ public partial class App : Application
         var lastItem = await _databaseService!.GetLastClipboardItemAsync();
         if (lastItem != null)
         {
-            var settings = _mainViewModel!.Settings;
+            var settings = _mainViewModel!.SettingsViewModel;
             PasteEngine.PasteWithFormatting(
                 lastItem.PlainText,
                 lastItem.RichText,

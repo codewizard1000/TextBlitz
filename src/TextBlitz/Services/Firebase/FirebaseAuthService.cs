@@ -116,6 +116,25 @@ public sealed class FirebaseAuthService : IDisposable
         _logger.LogInformation("User signed out");
     }
 
+    // Backward-compatible async API surface used by existing ViewModels
+    public Task SignOutAsync()
+    {
+        SignOut();
+        return Task.CompletedTask;
+    }
+
+    public Task SignInAsync() => Task.CompletedTask;
+
+    public Task SignUpAsync() => Task.CompletedTask;
+
+    public Task AuthenticateWithTokenAsync(string idToken)
+    {
+        if (string.IsNullOrWhiteSpace(idToken)) return Task.CompletedTask;
+        // Minimal compatibility behavior for now.
+        SetAuthState(idToken, _currentUser?.UserId ?? "local-user", _currentUser?.Email ?? "user@example.com");
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Reads subscription state from the current user profile and checks trial expiry.
     /// Updates the local user profile accordingly.

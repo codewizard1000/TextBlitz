@@ -54,6 +54,8 @@ public sealed class BillingService
 
     /// <summary>Raised when entitlements change (e.g., trial expired, subscription activated).</summary>
     public event EventHandler<EntitlementsChangedEventArgs>? EntitlementsChanged;
+    // Backward-compatible event expected by older ViewModels
+    public event EventHandler? SubscriptionChanged;
 
     /// <summary>Current subscription status of the authenticated user.</summary>
     public SubscriptionStatus SubscriptionStatus { get; private set; } = SubscriptionStatus.None;
@@ -63,6 +65,8 @@ public sealed class BillingService
 
     /// <summary>Whether the user currently has Pro-level access.</summary>
     public bool IsProUser => _authService.IsPro();
+    // Backward-compatible alias
+    public bool IsPro => IsProUser;
 
     /// <summary>Number of trial days remaining, or 0 if no trial / trial expired.</summary>
     public int TrialDaysRemaining
@@ -210,10 +214,20 @@ public sealed class BillingService
         return DefaultFreeLimits;
     }
 
+    // Backward-compatible API expected by older ViewModels
+    public async Task InitiateCheckoutAsync(string planType, CancellationToken ct = default)
+    {
+        await GetCheckoutUrlAsync(planType, ct).ConfigureAwait(false);
+    }
+
+    public Task RefreshEntitlementsAsync(CancellationToken ct = default)
+        => CheckEntitlementsAsync(ct);
+
     private void OnEntitlementsChanged()
     {
         EntitlementsChanged?.Invoke(this, new EntitlementsChangedEventArgs(
             SubscriptionStatus, PlanType, IsProUser, TrialDaysRemaining));
+        SubscriptionChanged?.Invoke(this, EventArgs.Empty);
     }
 }
 
