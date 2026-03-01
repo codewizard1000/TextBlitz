@@ -19,6 +19,7 @@ namespace TextBlitz;
 
 public partial class App : Application
 {
+    private const bool DiagnosticMode = true;
     private TaskbarIcon? _trayIcon;
     private ClipboardWatcher? _clipboardWatcher;
     private GlobalHotkeyManager? _hotkeyManager;
@@ -47,50 +48,95 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Ensure data directory exists
-        var dataDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "TextBlitz");
-        Directory.CreateDirectory(dataDir);
+        try
+        {
+            LogDiagnostic("Startup begin");
 
-        // Initialize services
-        _databaseService = new DatabaseService();
-        await _databaseService.InitializeAsync();
+            // Ensure data directory exists
+            var dataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TextBlitz");
+            Directory.CreateDirectory(dataDir);
+            LogDiagnostic($"Data dir ready: {dataDir}");
 
-        var httpClient = new HttpClient();
+            // Initialize services
+            _databaseService = new DatabaseService();
+            await _databaseService.InitializeAsync();
+            LogDiagnostic("Database initialized");
 
-        _authService = new FirebaseAuthService(NullLogger<FirebaseAuthService>.Instance);
-        _syncService = new FirestoreSyncService(httpClient, _authService, NullLogger<FirestoreSyncService>.Instance);
-        _billingService = new BillingService(_authService, _syncService, httpClient, NullLogger<BillingService>.Instance);
+            var httpClient = new HttpClient();
 
-        _clipboardWatcher = new ClipboardWatcher();
-        _hotkeyManager = new GlobalHotkeyManager();
-        _hotkeyManager.Start();
-        _expansionService = new SnippetExpansionService();
+            _authService = new FirebaseAuthService(NullLogger<FirebaseAuthService>.Instance);
+            _syncService = new FirestoreSyncService(httpClient, _authService, NullLogger<FirestoreSyncService>.Instance);
+            _billingService = new BillingService(_authService, _syncService, httpClient, NullLogger<BillingService>.Instance);
 
-        // Create main ViewModel
-        _mainViewModel = new MainViewModel(
-            _databaseService,
-            _clipboardWatcher,
-            _hotkeyManager,
-            _expansionService,
-            _authService,
-            _syncService,
-            _billingService);
+            _clipboardWatcher = new ClipboardWatcher();
+            _hotkeyManager = new GlobalHotkeyManager();
+            _hotkeyManager.Start();
+            _expansionService = new SnippetExpansionService();
+            LogDiagnostic("Core services initialized");
 
-        await _mainViewModel.InitializeAsync();
+            // Create main ViewModel
+            _mainViewModel = new MainViewModel(
+                _databaseService,
+                _clipboardWatcher,
+                _hotkeyManager,
+                _expansionService,
+                _authService,
+                _syncService,
+                _billingService);
 
-        // Setup system tray
-        SetupTrayIcon();
+            await _mainViewModel.InitializeAsync();
+            LogDiagnostic("MainViewModel initialized");
 
-        // Register global hotkeys
-        RegisterDefaultHotkeys();
+            // Setup system tray
+            SetupTrayIcon();
 
-        // Start clipboard watching
-        _clipboardWatcher.Start();
+            // Register global hotkeys
+            RegisterDefaultHotkeys();
 
-        // Start snippet expansion
-        _expansionService.Start();
+            // Start clipboard watching
+            _clipboardWatcher.Start();
+
+            // Start snippet expansion
+            _expansionService.Start();
+            LogDiagnostic("Watchers started");
+
+            if (DiagnosticMode)
+            {
+                ShowSnippetManager();
+                MessageBox.Show("TextBlitz diagnostic build started.\n\nIf anything fails, log file:\n%LOCALAPPDATA%\\TextBlitz\\diagnostic.log",
+                    "TextBlitz Diagnostic", MessageBoxButton.OK, MessageBoxImage.Information);
+                LogDiagnostic("Diagnostic UI shown");
+            }
+        }
+        catch (Exception ex)
+        {
+            LogDiagnostic($"Startup crash: {ex}");
+            MessageBox.Show(
+                "TextBlitz failed to start.\n\nSee log:\n%LOCALAPPDATA%\\TextBlitz\\diagnostic.log\n\n" + ex.Message,
+                "TextBlitz Startup Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown();
+        }
+    }
+
+    private static void LogDiagnostic(string message)
+    {
+        try
+        {
+            var dataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "TextBlitz");
+            Directory.CreateDirectory(dataDir);
+            var logPath = Path.Combine(dataDir, "diagnostic.log");
+            File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
+        }
+        catch
+        {
+            // best effort logging
+        }
     }
 
     private void SetupTrayIcon()
