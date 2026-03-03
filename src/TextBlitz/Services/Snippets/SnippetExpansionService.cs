@@ -218,14 +218,15 @@ public sealed class SnippetExpansionService : IDisposable
                         {
                             // Suppress the delimiter keystroke — we handle expansion
                             // Fire-and-forget the expansion on the dispatcher
-                            string shortcut = match.TextShortcut;
-                            string content = match.Content;
+                            string shortcut = match.Value.Snippet.TextShortcut;
+                            string content = match.Value.Snippet.Content;
+                            int eraseLength = match.Value.TypedLength;
 
                             _typingBuffer.Clear();
 
                             _dispatcher.BeginInvoke(async () =>
                             {
-                                await ExpandSnippetAsync(shortcut, content, ch);
+                                await ExpandSnippetAsync(shortcut, content, eraseLength, ch);
                             });
 
                             // Suppress the delimiter key
@@ -274,9 +275,10 @@ public sealed class SnippetExpansionService : IDisposable
 
     /// <summary>
     /// Checks if the current typing buffer ends with any active snippet's text shortcut.
-    /// Returns the matching snippet or null.
+    /// Returns the matching snippet and the number of typed characters to erase.
+    /// Supports slash-prefixed shortcuts (e.g. /re) even when snippet is stored as re.
     /// </summary>
-    private Snippet? FindMatchingSnippet()
+    private (Snippet Snippet, int TypedLength)? FindMatchingSnippet()
     {
         if (_typingBuffer.Length == 0 || ActiveSnippets.Count == 0)
             return null;
@@ -285,20 +287,29 @@ public sealed class SnippetExpansionService : IDisposable
 
         foreach (var snippet in ActiveSnippets)
         {
-            if (!snippet.IsEnabled || string.IsNullOrEmpty(snippet.TextShortcut))
+            if (!snippet.IsEnabled || string.IsNullOrWhiteSpace(snippet.TextShortcut))
                 continue;
 
-            string shortcut = snippet.TextShortcut;
+            string shortcut = snippet.TextShortcut.Trim();
+            string plainShortcut = shortcut.StartsWith('/') ? shortcut[1..] : shortcut;
 
-            if (buffer.Length >= shortcut.Length &&
-                buffer.EndsWith(shortcut, StringComparison.Ordinal))
+            // Try both direct match and slash-prefixed alias.
+            foreach (var candidate in new[] { shortcut, plainShortcut, "/" + plainShortcut })
             {
-                // Ensure the shortcut is at a word boundary (either start of buffer
-                // or preceded by a delimiter/space)
-                int startIndex = buffer.Length - shortcut.Length;
+                if (string.IsNullOrWhiteSpace(candidate))
+                    continue;
+
+                if (buffer.Length < candidate.Length ||
+                    !buffer.EndsWith(candidate, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // Ensure boundary before the shortcut candidate.
+                int startIndex = buffer.Length - candidate.Length;
                 if (startIndex == 0 || DelimiterTriggers.Contains(buffer[startIndex - 1]))
                 {
-                    return snippet;
+                    return (snippet, candidate.Length);
                 }
             }
         }
@@ -310,14 +321,14 @@ public sealed class SnippetExpansionService : IDisposable
     /// Performs snippet expansion: sends backspaces to erase the shortcut, processes tokens,
     /// and pastes the result.
     /// </summary>
-    private async Task ExpandSnippetAsync(string shortcut, string content, char delimiter)
+    private async Task ExpandSnippetAsync(string shortcut, string content, int typedLength, char delimiter)
     {
         _suppressingInput = true;
 
         try
         {
             // Send backspaces to erase the shortcut text that was already typed
-            SendBackspaces(shortcut.Length);
+            SendBackspaces(Math.Max(typedLength, shortcut.Length));
 
             // Small delay for backspaces to be processed by the target application
             await Task.Delay(30);
