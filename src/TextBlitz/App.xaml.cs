@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
+using System.Threading;
 using System.Windows;
 using Microsoft.Extensions.Logging.Abstractions;
 using TextBlitz.Data;
@@ -19,6 +20,8 @@ namespace TextBlitz;
 
 public partial class App : Application
 {
+    private static Mutex? _singleInstanceMutex;
+    private static bool _ownsSingleInstanceMutex;
     private TaskbarIcon? _trayIcon;
     private ClipboardWatcher? _clipboardWatcher;
     private GlobalHotkeyManager? _hotkeyManager;
@@ -46,6 +49,16 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Single-instance guard
+        _singleInstanceMutex = new Mutex(true, "TextBlitz.SingleInstance", out var isFirstInstance);
+        _ownsSingleInstanceMutex = isFirstInstance;
+        if (!isFirstInstance)
+        {
+            MessageBox.Show("TextBlitz is already running.", "TextBlitz", MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
 
         // Ensure data directory exists
         var dataDir = Path.Combine(
@@ -91,6 +104,9 @@ public partial class App : Application
 
         // Start snippet expansion
         _expansionService.Start();
+
+        // Force a visible UI on startup (avoid tray-only confusion)
+        ShowSnippetManager();
     }
 
     private void SetupTrayIcon()
@@ -266,6 +282,13 @@ public partial class App : Application
         _hotkeyManager?.Dispose();
         _expansionService?.Dispose();
         _trayIcon?.Dispose();
+        if (_ownsSingleInstanceMutex)
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+        }
+        _singleInstanceMutex?.Dispose();
+        _singleInstanceMutex = null;
+        _ownsSingleInstanceMutex = false;
         Shutdown();
     }
 
