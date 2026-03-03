@@ -43,6 +43,88 @@ public partial class SnippetManagerViewModel : ObservableObject
     [ObservableProperty]
     private bool _isRecordingHotkey;
 
+    public string SearchQuery
+    {
+        get => SearchText;
+        set => SearchText = value;
+    }
+
+    public bool IsSnippetSelected => EditingSnippet is not null;
+
+    public bool IsNoSnippetSelected => !IsSnippetSelected;
+
+    public string EditName
+    {
+        get => EditingSnippet?.Name ?? string.Empty;
+        set
+        {
+            if (EditingSnippet is null || EditingSnippet.Name == value)
+                return;
+
+            EditingSnippet.Name = value;
+            OnPropertyChanged(nameof(EditName));
+        }
+    }
+
+    public string EditContent
+    {
+        get => EditingSnippet?.Content ?? string.Empty;
+        set
+        {
+            if (EditingSnippet is null || EditingSnippet.Content == value)
+                return;
+
+            EditingSnippet.Content = value;
+            OnPropertyChanged(nameof(EditContent));
+        }
+    }
+
+    public string EditTextShortcut
+    {
+        get => EditingSnippet?.TextShortcut ?? string.Empty;
+        set
+        {
+            if (EditingSnippet is null || EditingSnippet.TextShortcut == value)
+                return;
+
+            EditingSnippet.TextShortcut = value;
+            OnPropertyChanged(nameof(EditTextShortcut));
+            OnPropertyChanged(nameof(IsTextShortcutEmpty));
+        }
+    }
+
+    public string EditHotkey
+    {
+        get => EditingSnippet?.Hotkey ?? string.Empty;
+        set
+        {
+            if (EditingSnippet is null || EditingSnippet.Hotkey == value)
+                return;
+
+            EditingSnippet.Hotkey = value;
+            OnPropertyChanged(nameof(EditHotkey));
+        }
+    }
+
+    public bool EditIsEnabled
+    {
+        get => EditingSnippet?.IsEnabled ?? false;
+        set
+        {
+            if (EditingSnippet is null || EditingSnippet.IsEnabled == value)
+                return;
+
+            EditingSnippet.IsEnabled = value;
+            OnPropertyChanged(nameof(EditIsEnabled));
+        }
+    }
+
+    public bool IsTextShortcutEmpty => string.IsNullOrWhiteSpace(EditingSnippet?.TextShortcut);
+
+    public bool HasConflict => !string.IsNullOrWhiteSpace(ConflictWarning);
+
+    public string RecordButtonText => IsRecordingHotkey ? "Press keys..." : "Record";
+
     /// <summary>
     /// Returns snippets filtered by <see cref="SearchText"/> across name, content, and text shortcut.
     /// </summary>
@@ -93,6 +175,7 @@ public partial class SnippetManagerViewModel : ObservableObject
     [RelayCommand]
     private void NewSnippet()
     {
+        SelectedSnippet = null;
         EditingSnippet = new Snippet
         {
             Id = Guid.NewGuid().ToString(),
@@ -109,21 +192,8 @@ public partial class SnippetManagerViewModel : ObservableObject
         if (snippet is null)
             return;
 
-        // Create a copy for editing so we can cancel without mutating the original
-        EditingSnippet = new Snippet
-        {
-            Id = snippet.Id,
-            Name = snippet.Name,
-            Content = snippet.Content,
-            TextShortcut = snippet.TextShortcut,
-            Hotkey = snippet.Hotkey,
-            IsEnabled = snippet.IsEnabled,
-            CreatedAt = snippet.CreatedAt,
-            UpdatedAt = snippet.UpdatedAt,
-            SyncId = snippet.SyncId
-        };
-
         SelectedSnippet = snippet;
+        EditingSnippet = CloneSnippet(snippet);
         ConflictWarning = null;
         IsEditing = true;
     }
@@ -176,6 +246,7 @@ public partial class SnippetManagerViewModel : ObservableObject
 
         IsEditing = false;
         EditingSnippet = null;
+        SelectedSnippet = null;
         ConflictWarning = null;
         OnPropertyChanged(nameof(FilteredSnippets));
 
@@ -185,6 +256,8 @@ public partial class SnippetManagerViewModel : ObservableObject
     [RelayCommand]
     private async Task DeleteSnippetAsync(Snippet? snippet)
     {
+        snippet ??= SelectedSnippet;
+
         if (snippet is null)
             return;
 
@@ -214,6 +287,7 @@ public partial class SnippetManagerViewModel : ObservableObject
     {
         IsEditing = false;
         EditingSnippet = null;
+        SelectedSnippet = null;
         ConflictWarning = null;
     }
 
@@ -236,6 +310,7 @@ public partial class SnippetManagerViewModel : ObservableObject
         if (EditingSnippet is not null)
         {
             EditingSnippet.Hotkey = hotkey;
+            OnPropertyChanged(nameof(EditHotkey));
             var conflict = CheckConflicts(EditingSnippet);
             ConflictWarning = conflict;
         }
@@ -298,6 +373,52 @@ public partial class SnippetManagerViewModel : ObservableObject
 
     partial void OnSearchTextChanged(string value)
     {
+        OnPropertyChanged(nameof(SearchQuery));
         OnPropertyChanged(nameof(FilteredSnippets));
     }
+
+    partial void OnSelectedSnippetChanged(Snippet? value)
+    {
+        if (value is null)
+            return;
+
+        EditingSnippet = CloneSnippet(value);
+        ConflictWarning = null;
+        IsEditing = true;
+    }
+
+    partial void OnEditingSnippetChanged(Snippet? value)
+    {
+        OnPropertyChanged(nameof(IsSnippetSelected));
+        OnPropertyChanged(nameof(IsNoSnippetSelected));
+        OnPropertyChanged(nameof(EditName));
+        OnPropertyChanged(nameof(EditContent));
+        OnPropertyChanged(nameof(EditTextShortcut));
+        OnPropertyChanged(nameof(EditHotkey));
+        OnPropertyChanged(nameof(EditIsEnabled));
+        OnPropertyChanged(nameof(IsTextShortcutEmpty));
+    }
+
+    partial void OnConflictWarningChanged(string? value)
+    {
+        OnPropertyChanged(nameof(HasConflict));
+    }
+
+    partial void OnIsRecordingHotkeyChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RecordButtonText));
+    }
+
+    private static Snippet CloneSnippet(Snippet snippet) => new()
+    {
+        Id = snippet.Id,
+        Name = snippet.Name,
+        Content = snippet.Content,
+        TextShortcut = snippet.TextShortcut,
+        Hotkey = snippet.Hotkey,
+        IsEnabled = snippet.IsEnabled,
+        CreatedAt = snippet.CreatedAt,
+        UpdatedAt = snippet.UpdatedAt,
+        SyncId = snippet.SyncId
+    };
 }
