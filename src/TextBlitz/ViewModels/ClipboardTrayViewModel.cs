@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TextBlitz.Data;
@@ -54,10 +56,12 @@ public partial class ClipboardTrayViewModel : ObservableObject
     {
         get
         {
-            var source = IsViewingList ? CurrentListItems : HistoryItems;
+            var source = IsViewingList
+                ? CurrentListItems
+                : new ObservableCollection<ClipboardItem>(PinnedItems.Concat(HistoryItems));
 
             if (string.IsNullOrWhiteSpace(SearchText))
-                return source;
+                return new ObservableCollection<ClipboardItem>(source);
 
             var filtered = source
                 .Where(item => item.PlainText.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
@@ -67,10 +71,67 @@ public partial class ClipboardTrayViewModel : ObservableObject
         }
     }
 
+    public string SearchQuery
+    {
+        get => SearchText;
+        set => SearchText = value;
+    }
+
+    public ObservableCollection<ClipboardItem> FilteredClipboardItems => FilteredItems;
+
+    public ObservableCollection<ClipboardItem> DisplayedListItems => CurrentListItems;
+
+    public ClipboardItem? SelectedClipboardItem
+    {
+        get => SelectedItem;
+        set => SelectedItem = value;
+    }
+
+    public bool HasSelectedItems => PinnedItems.Count > 0;
+
+    public string StatusText => IsViewingList
+        ? $"{CurrentListItems.Count} items in {CurrentListName}"
+        : $"{PinnedItems.Count} pinned, {HistoryItems.Count} history";
+
+    public bool IsKeepOriginalMode
+    {
+        get => SelectedFormattingMode == FormattingMode.KeepOriginal;
+        set
+        {
+            if (value)
+                SelectedFormattingMode = FormattingMode.KeepOriginal;
+        }
+    }
+
+    public bool IsDestinationMode
+    {
+        get => SelectedFormattingMode == FormattingMode.UseDestination;
+        set
+        {
+            if (value)
+                SelectedFormattingMode = FormattingMode.UseDestination;
+        }
+    }
+
+    public bool IsMergeMode
+    {
+        get => SelectedFormattingMode == FormattingMode.MergeFormatting;
+        set
+        {
+            if (value)
+                SelectedFormattingMode = FormattingMode.MergeFormatting;
+        }
+    }
+
     public ClipboardTrayViewModel(DatabaseService databaseService, ClipboardWatcher clipboardWatcher)
     {
         _databaseService = databaseService;
         _clipboardWatcher = clipboardWatcher;
+
+        HistoryItems.CollectionChanged += (_, _) => NotifyCollectionStateChanged();
+        PinnedItems.CollectionChanged += (_, _) => NotifyCollectionStateChanged();
+        SavedLists.CollectionChanged += (_, _) => NotifyCollectionStateChanged();
+        CurrentListItems.CollectionChanged += (_, _) => NotifyCollectionStateChanged();
 
         _clipboardWatcher.ClipboardChanged += (_, item) => OnClipboardChanged(item);
     }
@@ -113,7 +174,7 @@ public partial class ClipboardTrayViewModel : ObservableObject
             SavedLists.Add(list);
         }
 
-        OnPropertyChanged(nameof(FilteredItems));
+        NotifyCollectionStateChanged();
     }
 
     /// <summary>
@@ -125,19 +186,28 @@ public partial class ClipboardTrayViewModel : ObservableObject
         try
         {
             await _databaseService.SaveClipboardItemAsync(item);
+            var removedIds = new List<int>();
 
-            // Insert at the top of history (reverse chronological)
-            HistoryItems.Insert(0, item);
-
-            // Trim history to the configured limit
-            while (HistoryItems.Count > _historyLimit)
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                var oldest = HistoryItems[HistoryItems.Count - 1];
-                HistoryItems.RemoveAt(HistoryItems.Count - 1);
-                await _databaseService.DeleteClipboardItemAsync(oldest.Id);
+                // Insert at the top of history (reverse chronological)
+                HistoryItems.Insert(0, item);
+
+                // Trim history to the configured limit
+                while (HistoryItems.Count > _historyLimit)
+                {
+                    var oldest = HistoryItems[HistoryItems.Count - 1];
+                    HistoryItems.RemoveAt(HistoryItems.Count - 1);
+                    removedIds.Add(oldest.Id);
+                }
+            });
+
+            foreach (var removedId in removedIds)
+            {
+                await _databaseService.DeleteClipboardItemAsync(removedId);
             }
 
-            OnPropertyChanged(nameof(FilteredItems));
+            NotifyCollectionStateChanged();
         }
         catch (Exception ex)
         {
@@ -156,6 +226,19 @@ public partial class ClipboardTrayViewModel : ObservableObject
             item.RichText,
             item.HtmlText,
             SelectedFormattingMode);
+    }
+
+    [RelayCommand]
+    private async Task CopyItemAsync(ClipboardItem? item)
+    {
+        if (item is null || string.IsNullOrEmpty(item.PlainText))
+            return;
+
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            _clipboardWatcher.SuppressNext = true;
+            Clipboard.SetText(item.PlainText, TextDataFormat.UnicodeText);
+        });
     }
 
     [RelayCommand]
@@ -187,7 +270,7 @@ public partial class ClipboardTrayViewModel : ObservableObject
         }
 
         await _databaseService.UpdatePinAsync(item.Id, item.IsPinned, item.PinOrder);
-        OnPropertyChanged(nameof(FilteredItems));
+        NotifyCollectionStateChanged();
     }
 
     [RelayCommand]
@@ -201,7 +284,7 @@ public partial class ClipboardTrayViewModel : ObservableObject
         CurrentListItems.Remove(item);
 
         await _databaseService.DeleteClipboardItemAsync(item.Id);
-        OnPropertyChanged(nameof(FilteredItems));
+        NotifyCollectionStateChanged();
     }
 
     [RelayCommand]
@@ -218,7 +301,7 @@ public partial class ClipboardTrayViewModel : ObservableObject
     /// </summary>
     public async Task SaveAsListWithNameAsync(string name)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(name) || PinnedItems.Count == 0)
             return;
 
         var listId = await _databaseService.CreateListAsync(name);
@@ -229,6 +312,8 @@ public partial class ClipboardTrayViewModel : ObservableObject
         {
             await _databaseService.AddItemToListAsync(item.Id, listId);
         }
+
+        NotifyCollectionStateChanged();
     }
 
     [RelayCommand]
@@ -248,7 +333,7 @@ public partial class ClipboardTrayViewModel : ObservableObject
             CurrentListItems.Add(item);
         }
 
-        OnPropertyChanged(nameof(FilteredItems));
+        NotifyCollectionStateChanged();
     }
 
     [RelayCommand]
@@ -258,7 +343,7 @@ public partial class ClipboardTrayViewModel : ObservableObject
         CurrentListName = string.Empty;
         SelectedList = null;
         CurrentListItems.Clear();
-        OnPropertyChanged(nameof(FilteredItems));
+        NotifyCollectionStateChanged();
     }
 
     [RelayCommand]
@@ -279,18 +364,41 @@ public partial class ClipboardTrayViewModel : ObservableObject
 
     partial void OnSearchTextChanged(string value)
     {
-        OnPropertyChanged(nameof(FilteredItems));
+        OnPropertyChanged(nameof(SearchQuery));
+        NotifyCollectionStateChanged();
     }
 
     partial void OnIsViewingListChanged(bool value)
     {
-        OnPropertyChanged(nameof(FilteredItems));
+        NotifyCollectionStateChanged();
+    }
+
+    partial void OnCurrentListNameChanged(string value)
+    {
+        NotifyCollectionStateChanged();
+    }
+
+    partial void OnSelectedItemChanged(ClipboardItem? value)
+    {
+        OnPropertyChanged(nameof(SelectedClipboardItem));
     }
 
     partial void OnSelectedFormattingModeChanged(FormattingMode value)
     {
+        OnPropertyChanged(nameof(IsKeepOriginalMode));
+        OnPropertyChanged(nameof(IsDestinationMode));
+        OnPropertyChanged(nameof(IsMergeMode));
         // Persist the formatting mode selection asynchronously
         _ = PersistFormattingModeAsync(value);
+    }
+
+    private void NotifyCollectionStateChanged()
+    {
+        OnPropertyChanged(nameof(FilteredItems));
+        OnPropertyChanged(nameof(FilteredClipboardItems));
+        OnPropertyChanged(nameof(DisplayedListItems));
+        OnPropertyChanged(nameof(HasSelectedItems));
+        OnPropertyChanged(nameof(StatusText));
     }
 
     private async Task PersistFormattingModeAsync(FormattingMode mode)

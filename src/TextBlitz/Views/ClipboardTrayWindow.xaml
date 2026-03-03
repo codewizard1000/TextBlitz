@@ -1,4 +1,5 @@
 <Window x:Class="TextBlitz.Views.ClipboardTrayWindow"
+        x:Name="TrayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -302,7 +303,6 @@
                             Style="{StaticResource BaseButtonStyle}"
                             Padding="6,2"
                             FontSize="14"
-                            Command="{Binding CloseCommand}"
                             Click="CloseButton_Click" />
                 </Grid>
             </Border>
@@ -310,7 +310,7 @@
             <!-- Search -->
             <Border Grid.Row="1" Padding="14,0,14,8">
                 <TextBox Style="{StaticResource SearchTextBoxStyle}"
-                         Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" />
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
             </Border>
 
             <!-- Formatting Mode -->
@@ -338,7 +338,6 @@
             <!-- Tab Content -->
             <TabControl Grid.Row="3"
                         Style="{StaticResource DarkTabControlStyle}"
-                        SelectedIndex="{Binding SelectedTabIndex}"
                         Margin="14,0">
                 <TabItem Header="History" Style="{StaticResource DarkTabItemStyle}">
                     <Grid>
@@ -348,16 +347,13 @@
                         </Grid.RowDefinitions>
 
                         <ListBox Grid.Row="0"
+                                 x:Name="HistoryItemsList"
                                  Style="{StaticResource ClipboardListBoxStyle}"
                                  ItemContainerStyle="{StaticResource ClipboardListBoxItemStyle}"
-                                 ItemsSource="{Binding FilteredClipboardItems}"
-                                 SelectedItem="{Binding SelectedClipboardItem}"
-                                 SelectionMode="Extended"
+                                 ItemsSource="{Binding FilteredItems}"
+                                 SelectedItem="{Binding SelectedItem}"
+                                 MouseDoubleClick="HistoryList_MouseDoubleClick"
                                  Margin="0,8,0,0">
-                            <ListBox.InputBindings>
-                                <MouseBinding Gesture="LeftDoubleClick"
-                                              Command="{Binding PasteItemCommand}" />
-                            </ListBox.InputBindings>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <Grid>
@@ -390,7 +386,9 @@
 
                                         <ToggleButton Grid.Column="1"
                                                       Style="{StaticResource PinToggleStyle}"
-                                                      IsChecked="{Binding IsPinned}"
+                                                      IsChecked="{Binding IsPinned, Mode=OneWay}"
+                                                      Command="{Binding DataContext.TogglePinCommand, Source={x:Reference TrayWindow}}"
+                                                      CommandParameter="{Binding}"
                                                       VerticalAlignment="Center" />
 
                                         <Grid.ContextMenu>
@@ -398,14 +396,18 @@
                                                          Foreground="{StaticResource TextBrush}"
                                                          BorderBrush="#45475A">
                                                 <MenuItem Header="Paste"
-                                                          Command="{Binding DataContext.PasteItemCommand, Source={x:Reference HistoryListRef}}" />
+                                                          Command="{Binding DataContext.PasteItemCommand, Source={x:Reference TrayWindow}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                 <MenuItem Header="Copy"
-                                                          Command="{Binding DataContext.CopyItemCommand, Source={x:Reference HistoryListRef}}" />
+                                                          Command="{Binding DataContext.CopyItemCommand, Source={x:Reference TrayWindow}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                 <Separator />
                                                 <MenuItem Header="Pin/Unpin"
-                                                          Command="{Binding DataContext.TogglePinCommand, Source={x:Reference HistoryListRef}}" />
+                                                          Command="{Binding DataContext.TogglePinCommand, Source={x:Reference TrayWindow}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                                 <MenuItem Header="Delete"
-                                                          Command="{Binding DataContext.DeleteItemCommand, Source={x:Reference HistoryListRef}}" />
+                                                          Command="{Binding DataContext.DeleteItemCommand, Source={x:Reference TrayWindow}}"
+                                                          CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             </ContextMenu>
                                         </Grid.ContextMenu>
                                     </Grid>
@@ -423,7 +425,7 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Lists" Style="{StaticResource DarkTabItemStyle}" x:Name="HistoryListRef">
+                <TabItem Header="Lists" Style="{StaticResource DarkTabItemStyle}">
                     <Grid Margin="0,8,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -433,7 +435,7 @@
                         <!-- Back button (visible when viewing a list) -->
                         <Button Grid.Row="0"
                                 Style="{StaticResource BaseButtonStyle}"
-                                Command="{Binding BackToListsCommand}"
+                                Command="{Binding BackToHistoryCommand}"
                                 HorizontalAlignment="Left"
                                 Margin="0,0,0,8"
                                 Visibility="{Binding IsViewingList, Converter={x:Static views:BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}">
@@ -447,7 +449,7 @@
                         <ListBox Grid.Row="1"
                                  Style="{StaticResource ClipboardListBoxStyle}"
                                  ItemContainerStyle="{StaticResource ClipboardListBoxItemStyle}"
-                                 ItemsSource="{Binding DisplayedListItems}"
+                                 ItemsSource="{Binding CurrentListItems}"
                                  Visibility="{Binding IsViewingList, Converter={x:Static views:BoolToVisibilityConverter.Instance}, FallbackValue=Collapsed}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
@@ -460,15 +462,13 @@
                         </ListBox>
 
                         <ListBox Grid.Row="1"
+                                 x:Name="SavedListsList"
                                  Style="{StaticResource ClipboardListBoxStyle}"
                                  ItemContainerStyle="{StaticResource ClipboardListBoxItemStyle}"
                                  ItemsSource="{Binding SavedLists}"
                                  SelectedItem="{Binding SelectedList}"
+                                 MouseDoubleClick="SavedLists_MouseDoubleClick"
                                  Visibility="{Binding IsViewingList, Converter={x:Static views:InverseBoolToVisibilityConverter.Instance}, FallbackValue=Visible}">
-                            <ListBox.InputBindings>
-                                <MouseBinding Gesture="LeftDoubleClick"
-                                              Command="{Binding OpenListCommand}" />
-                            </ListBox.InputBindings>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
                                     <StackPanel>
@@ -496,7 +496,7 @@
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="&#x2699;"
                                 Style="{StaticResource BaseButtonStyle}"
-                                Command="{Binding OpenSettingsCommand}"
+                                Click="OpenSettingsButton_Click"
                                 Padding="6,2" FontSize="14"
                                 ToolTip="Settings" />
                     </StackPanel>

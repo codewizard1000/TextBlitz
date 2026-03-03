@@ -3,6 +3,9 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Globalization;
+using System.Windows.Controls.Primitives;
+using TextBlitz.Models;
+using TextBlitz.ViewModels;
 
 namespace TextBlitz.Views;
 
@@ -34,9 +37,63 @@ public partial class ClipboardTrayWindow : Window
         Hide();
     }
 
+    private void HistoryList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject source &&
+            FindAncestor<ButtonBase>(source) is not null)
+        {
+            return;
+        }
+
+        if (DataContext is not ClipboardTrayViewModel viewModel ||
+            sender is not System.Windows.Controls.ListBox listBox ||
+            listBox.SelectedItem is not ClipboardItem item)
+        {
+            return;
+        }
+
+        if (viewModel.PasteItemCommand.CanExecute(item))
+        {
+            viewModel.PasteItemCommand.Execute(item);
+        }
+    }
+
+    private void SavedLists_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DataContext is not ClipboardTrayViewModel viewModel ||
+            sender is not System.Windows.Controls.ListBox listBox ||
+            listBox.SelectedItem is not SavedList list)
+        {
+            return;
+        }
+
+        if (viewModel.LoadListCommand.CanExecute(list))
+        {
+            viewModel.LoadListCommand.Execute(list);
+        }
+    }
+
+    private void OpenSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        App.Instance.ShowSettings();
+    }
+
     private void Window_Deactivated(object? sender, EventArgs e)
     {
         Hide();
+    }
+
+    private static T? FindAncestor<T>(DependencyObject current) where T : DependencyObject
+    {
+        while (current != null)
+        {
+            if (current is T match)
+                return match;
+
+            current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+        }
+
+        return null;
     }
 }
 

@@ -164,7 +164,7 @@ public partial class App : Application
         }
     }
 
-    private void ShowClipboardTray()
+    private async void ShowClipboardTray()
     {
         if (_trayWindow == null)
         {
@@ -174,6 +174,8 @@ public partial class App : Application
             };
             _trayWindow.Closed += (s, e) => _trayWindow = null;
         }
+
+        await _mainViewModel!.ClipboardTrayViewModel.LoadHistoryAsync();
 
         // Position near system tray (bottom-right)
         var workArea = SystemParameters.WorkArea;
