@@ -133,23 +133,34 @@ public partial class App : Application
     {
         var settings = _mainViewModel!.SettingsViewModel;
 
-        _hotkeyManager!.RegisterHotkey("clipboard_tray",
+        RegisterAppHotkey("clipboard_tray",
             settings.ClipboardTrayHotkey ?? "Ctrl+Shift+V",
-            () => Dispatcher.Invoke(ToggleClipboardTray));
+            ToggleClipboardTray);
 
-        _hotkeyManager.RegisterHotkey("snippet_picker",
+        RegisterAppHotkey("snippet_picker",
             settings.SnippetPickerHotkey ?? "Ctrl+Shift+Space",
-            () => Dispatcher.Invoke(ShowSnippetPicker));
+            ShowSnippetPicker);
 
-        _hotkeyManager.RegisterHotkey("paste_last",
+        RegisterAppHotkey("paste_last",
             settings.PasteLastHotkey ?? "Ctrl+Shift+L",
-            () => Dispatcher.Invoke(PasteLast));
+            PasteLast);
     }
 
     public void ReregisterHotkeys()
     {
         _hotkeyManager?.UnregisterAll();
         RegisterDefaultHotkeys();
+    }
+
+    private void RegisterAppHotkey(string id, string? hotkeyString, Action callback)
+    {
+        if (string.IsNullOrWhiteSpace(hotkeyString))
+            return;
+
+        if (!_hotkeyManager!.TryRegisterHotkey(id, hotkeyString, () => Dispatcher.Invoke(callback), out string? errorMessage))
+        {
+            System.Diagnostics.Debug.WriteLine($"App hotkey '{id}' was not registered: {errorMessage}");
+        }
     }
 
     private void ToggleClipboardTray()

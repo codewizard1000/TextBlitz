@@ -78,7 +78,7 @@ public partial class MainViewModel : ObservableObject
         _snippetManagerViewModel = new SnippetManagerViewModel(
             databaseService, snippetExpansionService, syncService, authService);
         _settingsViewModel = new SettingsViewModel(
-            databaseService, hotkeyManager, syncService, authService);
+            databaseService, syncService, authService);
 
         _authService.AuthStateChanged += OnAuthStateChanged;
         _billingService.SubscriptionChanged += OnSubscriptionChanged;
@@ -102,9 +102,6 @@ public partial class MainViewModel : ObservableObject
         await ClipboardTrayViewModel.LoadFormattingModeAsync(settings);
         await SnippetManagerViewModel.LoadSnippetsAsync();
         await SettingsViewModel.LoadAsync();
-
-        // Register global hotkeys from settings
-        RegisterHotkeys(settings);
 
         // Start snippet expansion monitoring
         var snippets = await _databaseService.GetAllSnippetsAsync();

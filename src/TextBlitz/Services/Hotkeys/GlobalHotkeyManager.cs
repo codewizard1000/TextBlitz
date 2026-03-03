@@ -108,6 +108,32 @@ public sealed class GlobalHotkeyManager : IDisposable
     }
 
     /// <summary>
+    /// Attempts to register a global hotkey without throwing for parse failures or Win32 conflicts.
+    /// </summary>
+    public bool TryRegisterHotkey(string id, string hotkeyString, Action callback, out string? errorMessage)
+    {
+        if (_hwndSource == null)
+            throw new InvalidOperationException("GlobalHotkeyManager has not been started. Call Start() first.");
+
+        try
+        {
+            RegisterHotkey(id, hotkeyString, callback);
+            errorMessage = null;
+            return true;
+        }
+        catch (ArgumentException ex)
+        {
+            errorMessage = ex.Message;
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            errorMessage = ex.Message;
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Unregisters a previously registered hotkey by its string id.
     /// </summary>
     public void UnregisterHotkey(string id)
@@ -273,6 +299,15 @@ public sealed class GlobalHotkeyManager : IDisposable
     {
         var id = $"auto_{Guid.NewGuid():N}";
         RegisterHotkey(id, hotkeyString, callback);
+    }
+
+    /// <summary>
+    /// Attempts to register a hotkey with an auto-generated id without throwing on conflicts.
+    /// </summary>
+    public bool TryRegister(string hotkeyString, Action callback, out string? errorMessage)
+    {
+        var id = $"auto_{Guid.NewGuid():N}";
+        return TryRegisterHotkey(id, hotkeyString, callback, out errorMessage);
     }
 
     public void Dispose()

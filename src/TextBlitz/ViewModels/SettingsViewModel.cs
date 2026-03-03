@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TextBlitz.Data;
 using TextBlitz.Models;
-using TextBlitz.Services.Hotkeys;
 using TextBlitz.Services.Firebase;
 
 namespace TextBlitz.ViewModels;
@@ -20,7 +19,6 @@ namespace TextBlitz.ViewModels;
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly DatabaseService _databaseService;
-    private readonly GlobalHotkeyManager _hotkeyManager;
     private readonly FirestoreSyncService _syncService;
     private readonly FirebaseAuthService _authService;
 
@@ -65,12 +63,10 @@ public partial class SettingsViewModel : ObservableObject
 
     public SettingsViewModel(
         DatabaseService databaseService,
-        GlobalHotkeyManager hotkeyManager,
         FirestoreSyncService syncService,
         FirebaseAuthService authService)
     {
         _databaseService = databaseService;
-        _hotkeyManager = hotkeyManager;
         _syncService = syncService;
         _authService = authService;
     }
@@ -119,23 +115,8 @@ public partial class SettingsViewModel : ObservableObject
         var settings = ToSettings();
         await _databaseService.SaveSettingsAsync(settings);
 
-        // Re-register hotkeys with updated key combinations
-        _hotkeyManager.UnregisterAll();
-
-        if (!string.IsNullOrWhiteSpace(ClipboardTrayHotkey))
-        {
-            _hotkeyManager.Register(ClipboardTrayHotkey, () => { });
-        }
-
-        if (!string.IsNullOrWhiteSpace(SnippetPickerHotkey))
-        {
-            _hotkeyManager.Register(SnippetPickerHotkey, () => { });
-        }
-
-        if (!string.IsNullOrWhiteSpace(PasteLastHotkey))
-        {
-            _hotkeyManager.Register(PasteLastHotkey, () => { });
-        }
+        // Re-register app hotkeys with the live callbacks wired by App.
+        App.Instance.ReregisterHotkeys();
 
         // Sync settings to the cloud if authenticated
         if (_authService.IsAuthenticated)
